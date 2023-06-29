@@ -1,0 +1,292 @@
+#include <stdio.h>
+#include <stdbool.h>
+
+struct Process {
+    int pid;
+    int arrivalTime;
+    int burstTime;
+    int priority;
+    int remainingTime;
+};
+
+void sjfNonPreemptive(struct Process processes[], int n);
+void sjfPreemptive(struct Process processes[], int n);
+void priorityNonPreemptive(struct Process processes[], int n);
+void priorityPreemptive(struct Process processes[], int n);
+void roundRobin(struct Process processes[], int n, int quantum);
+
+void displayGanttChart(struct Process processes[], int n);
+
+int main() {
+    int n, i, quantum;
+    printf("Enter the number of processes: ");
+    scanf("%d", &n);
+
+    struct Process processes[n];
+
+    printf("Enter arrival time, burst time, and priority for each process:\n");
+    for (i = 0; i < n; i++) {
+        printf("Process %d:\n", i + 1);
+        processes[i].pid = i + 1;
+        printf("Arrival Time: ");
+        scanf("%d", &processes[i].arrivalTime);
+        printf("Burst Time: ");
+        scanf("%d", &processes[i].burstTime);
+        printf("Priority: ");
+        scanf("%d", &processes[i].priority);
+        processes[i].remainingTime = processes[i].burstTime;
+    }
+
+    printf("\n");
+
+    sjfNonPreemptive(processes, n);
+    sjfPreemptive(processes, n);
+    priorityNonPreemptive(processes, n);
+    priorityPreemptive(processes, n);
+
+    printf("Enter the quantum size for Round Robin algorithm: ");
+    scanf("%d", &quantum);
+    roundRobin(processes, n, quantum);
+
+    return 0;
+}
+
+void sjfNonPreemptive(struct Process processes[], int n) {
+    printf("SJF (Non-preemptive) Scheduling Algorithm:\n");
+
+    // Sort the processes based on arrival time and burst time
+    for (int i = 0; i < n - 1; i++) {
+        for (int j = i + 1; j < n; j++) {
+            if (processes[i].arrivalTime > processes[j].arrivalTime) {
+                struct Process temp = processes[i];
+                processes[i] = processes[j];
+                processes[j] = temp;
+            }
+            else if (processes[i].arrivalTime == processes[j].arrivalTime && processes[i].burstTime > processes[j].burstTime) {
+                struct Process temp = processes[i];
+                processes[i] = processes[j];
+                processes[j] = temp;
+            }
+        }
+    }
+
+    int completionTime = 0;
+    int waitingTime = 0;
+    int turnaroundTime = 0;
+
+    printf("Process\tArrival Time\tBurst Time\tWaiting Time\tTurnaround Time\n");
+
+    for (int i = 0; i < n; i++) {
+        completionTime += processes[i].burstTime;
+        turnaroundTime = completionTime - processes[i].arrivalTime;
+        waitingTime = turnaroundTime - processes[i].burstTime;
+
+        printf("%d\t%d\t\t%d\t\t%d\t\t%d\n", processes[i].pid, processes[i].arrivalTime, processes[i].burstTime, waitingTime, turnaroundTime);
+    }
+
+    printf("\n");
+}
+
+void sjfPreemptive(struct Process processes[], int n) {
+    printf("SJF (Preemptive) Scheduling Algorithm:\n");
+
+    int remainingProcesses = n;
+    int currentTime = 0;
+    int completedProcesses = 0;
+
+    printf("Process\tArrival Time\tBurst Time\tWaiting Time\tTurnaround Time\n");
+
+    while (completedProcesses < n) {
+        int shortestJob = -1;
+        int shortestBurstTime = -1;
+
+        for (int i = 0; i < n; i++) {
+            if (processes[i].arrivalTime <= currentTime && processes[i].remainingTime > 0) {
+                if (shortestJob == -1 || processes[i].remainingTime < shortestBurstTime) {
+                    shortestJob = i;
+                    shortestBurstTime = processes[i].remainingTime;
+                }
+            }
+        }
+
+        if (shortestJob == -1) {
+            currentTime++;
+            continue;
+        }
+
+        processes[shortestJob].remainingTime--;
+        currentTime++;
+
+        if (processes[shortestJob].remainingTime == 0) {
+            int completionTime = currentTime;
+            int waitingTime = completionTime - processes[shortestJob].arrivalTime - processes[shortestJob].burstTime;
+            int turnaroundTime = completionTime - processes[shortestJob].arrivalTime;
+
+            printf("%d\t%d\t\t%d\t\t%d\t\t%d\n", processes[shortestJob].pid, processes[shortestJob].arrivalTime, processes[shortestJob].burstTime, waitingTime, turnaroundTime);
+
+            completedProcesses++;
+        }
+    }
+
+    printf("\n");
+}
+
+void priorityNonPreemptive(struct Process processes[], int n) {
+    printf("Priority (Non-preemptive) Scheduling Algorithm:\n");
+
+    // Sort the processes based on arrival time and priority
+    for (int i = 0; i < n - 1; i++) {
+        for (int j = i + 1; j < n; j++) {
+            if (processes[i].arrivalTime > processes[j].arrivalTime) {
+                struct Process temp = processes[i];
+                processes[i] = processes[j];
+                processes[j] = temp;
+            }
+            else if (processes[i].arrivalTime == processes[j].arrivalTime && processes[i].priority > processes[j].priority) {
+                struct Process temp = processes[i];
+                processes[i] = processes[j];
+                processes[j] = temp;
+            }
+        }
+    }
+
+    int completionTime = 0;
+    int waitingTime = 0;
+    int turnaroundTime = 0;
+
+    printf("Process\tArrival Time\tBurst Time\tPriority\tWaiting Time\tTurnaround Time\n");
+
+    for (int i = 0; i < n; i++) {
+        completionTime += processes[i].burstTime;
+        turnaroundTime = completionTime - processes[i].arrivalTime;
+        waitingTime = turnaroundTime - processes[i].burstTime;
+
+        printf("%d\t%d\t\t%d\t\t%d\t\t%d\t\t%d\n", processes[i].pid, processes[i].arrivalTime, processes[i].burstTime, processes[i].priority, waitingTime, turnaroundTime);
+    }
+
+    printf("\n");
+}
+
+void priorityPreemptive(struct Process processes[], int n) {
+    printf("Priority (Preemptive) Scheduling Algorithm:\n");
+
+    int remainingProcesses = n;
+    int currentTime = 0;
+    int completedProcesses = 0;
+
+    printf("Process\tArrival Time\tBurst Time\tPriority\tWaiting Time\tTurnaround Time\n");
+
+    while (completedProcesses < n) {
+        int highestPriorityJob = -1;
+        int highestPriority = -1;
+
+        for (int i = 0; i < n; i++) {
+            if (processes[i].arrivalTime <= currentTime && processes[i].remainingTime > 0) {
+                if (highestPriorityJob == -1 || processes[i].priority < highestPriority) {
+                    highestPriorityJob = i;
+                    highestPriority = processes[i].priority;
+                }
+            }
+        }
+
+        if (highestPriorityJob == -1) {
+            currentTime++;
+            continue;
+        }
+
+        processes[highestPriorityJob].remainingTime--;
+        currentTime++;
+
+        if (processes[highestPriorityJob].remainingTime == 0) {
+            int completionTime = currentTime;
+            int waitingTime = completionTime - processes[highestPriorityJob].arrivalTime - processes[highestPriorityJob].burstTime;
+            int turnaroundTime = completionTime - processes[highestPriorityJob].arrivalTime;
+
+            printf("%d\t%d\t\t%d\t\t%d\t\t%d\t\t%d\n", processes[highestPriorityJob].pid, processes[highestPriorityJob].arrivalTime, processes[highestPriorityJob].burstTime, processes[highestPriorityJob].priority, waitingTime, turnaroundTime);
+
+            completedProcesses++;
+        }
+    }
+
+    printf("\n");
+}
+
+void roundRobin(struct Process processes[], int n, int quantum) {
+    printf("Round Robin Scheduling Algorithm (Quantum = %d):\n", quantum);
+
+    int currentTime = 0;
+    int completedProcesses = 0;
+
+    int waitingTime[n];
+    int turnaroundTime[n];
+
+    for (int i = 0; i < n; i++) {
+        waitingTime[i] = 0;
+        turnaroundTime[i] = 0;
+    }
+
+    while (completedProcesses < n) {
+        for (int i = 0; i < n; i++) {
+            if (processes[i].remainingTime > 0) {
+                if (processes[i].remainingTime <= quantum) {
+                    currentTime += processes[i].remainingTime;
+                    processes[i].remainingTime = 0;
+                    turnaroundTime[i] = currentTime - processes[i].arrivalTime;
+                    completedProcesses++;
+                } else {
+                    currentTime += quantum;
+                    processes[i].remainingTime -= quantum;
+                }
+                waitingTime[i] = currentTime - processes[i].arrivalTime - processes[i].burstTime;
+            }
+        }
+    }
+
+    printf("Process\tArrival Time\tBurst Time\tWaiting Time\tTurnaround Time\n");
+
+    for (int i = 0; i < n; i++) {
+        printf("%d\t%d\t\t%d\t\t%d\t\t%d\n", processes[i].pid, processes[i].arrivalTime, processes[i].burstTime, waitingTime[i], turnaroundTime[i]);
+    }
+
+    printf("Process\tArrival Time\tBurst Time\tWaiting Time\tTurnaround Time\n");
+
+    for (int i = 0; i < n; i++) {
+        printf("%d\t%d\t\t%d\t\t%d\t\t%d\n", processes[i].pid, processes[i].arrivalTime, processes[i].burstTime, waitingTime[i], turnaroundTime[i]);
+    }
+
+    printf("\n");
+}
+
+void displayGanttChart(struct Process processes[], int n) {
+    printf("Gantt Chart:\n");
+
+    int currentTime = 0;
+    bool isIdle = true;
+
+    while (true) {
+        bool allCompleted = true;
+
+        for (int i = 0; i < n; i++) {
+            if (processes[i].remainingTime > 0) {
+                allCompleted = false;
+
+                if (processes[i].arrivalTime <= currentTime) {
+                    printf("| P%d ", processes[i].pid);
+                    processes[i].remainingTime--;
+                    currentTime++;
+                } else {
+                    printf("| Idle ");
+                    currentTime++;
+                }
+            } else {
+                printf("|     ");
+            }
+        }
+
+        if (allCompleted) {
+            break;
+        }
+    }
+
+    printf("|\n\n");
+}
